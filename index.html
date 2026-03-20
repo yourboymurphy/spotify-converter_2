@@ -646,7 +646,7 @@ async function fetchPlaylist() {
   document.getElementById('outputPanel').classList.remove('visible');
 
   try {
-    // Fetch playlist info
+    // Fetch playlist info (tracks are included in this response)
     const infoRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
       headers: { Authorization: 'Bearer ' + accessToken }
     });
@@ -656,8 +656,17 @@ async function fetchPlaylist() {
     }
     const info = await infoRes.json();
 
-    // Fetch tracks
-    const items = await fetchAllTracks(playlistId);
+    // Tracks are already embedded in the playlist response under info.items.items
+    // Handle pagination if there are more than 100 tracks
+    let items = (info.items && info.items.items) ? info.items.items : [];
+    let nextUrl = (info.items && info.items.next) ? info.items.next : null;
+    while (nextUrl) {
+      const r = await fetch(nextUrl, { headers: { Authorization: 'Bearer ' + accessToken } });
+      if (!r.ok) break;
+      const d = await r.json();
+      items = items.concat(d.items || []);
+      nextUrl = d.next || null;
+    }
 
     // Render
     rawLines = [];
