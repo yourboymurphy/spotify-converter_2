@@ -666,10 +666,11 @@ async function fetchPlaylist() {
 
     let count = 0;
     items.forEach((item, i) => {
-      if (!item.track || !item.track.name) return; // skip local/null tracks
+      const track = item.track || item.item; // Spotify API uses 'item' in newer responses
+      if (!track || !track.name) return; // skip local/null tracks
       count++;
-      const artist = item.track.artists.map(a => a.name).join(', ');
-      const song = item.track.name;
+      const artist = track.artists.map(a => a.name).join(', ');
+      const song = track.name;
       const line = `${artist}: ${song}`;
       rawLines.push(line);
 
