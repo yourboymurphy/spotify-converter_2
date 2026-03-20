@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playlist → List</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1DB954;
+    --green-dim: #158a3e;
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --muted: #666;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Unbounded', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Background glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(29,185,84,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 760px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(22px, 5vw, 34px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #fff;
+    line-height: 1;
+  }
+
+  h1 span {
+    color: var(--green);
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* Steps */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .step-num {
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .step-card label {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--green);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  .note {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .note a {
+    color: var(--green);
+    text-decoration: none;
+  }
+
+  .note a:hover { text-decoration: underline; }
+
+  /* Main action row */
+  .action-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .url-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .url-input-wrap input {
+    padding-left: 40px;
+    font-size: 13px;
+    height: 48px;
+  }
+
+  .url-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+  }
+
+  button {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #000;
+    padding: 0 28px;
+    height: 48px;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #22d460;
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    font-size: 11px;
+  }
+
+  .btn-secondary:hover { background: var(--surface2); border-color: #444; }
+
+  /* Auth bar */
+  .auth-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 11px;
+  }
+
+  .auth-bar.visible { display: flex; }
+
+  .auth-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    flex-shrink: 0;
+  }
+
+  .auth-text { color: var(--muted); flex: 1; }
+  .auth-user { color: var(--text); font-weight: 700; }
+
+  /* Output panel */
+  .output-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .output-panel.visible { display: block; }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .output-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .output-meta strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .track-list {
+    padding: 24px;
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .track-item {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 13px;
+    line-height: 1.4;
+    animation: fadeIn 0.2s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .track-num {
+    color: var(--muted);
+    font-size: 10px;
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .track-text {
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .track-text .artist { color: var(--green); }
+  .track-text .sep { color: var(--muted); margin: 0 2px; }
+
+  /* Error message */
+  .error-msg {
+    display: none;
+    padding: 12px 16px;
+    background: rgba(255,60,60,0.08);
+    border: 1px solid rgba(255,60,60,0.2);
+    border-radius: 6px;
+    color: #ff6b6b;
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  .error-msg.visible { display: block; }
+
+  /* Loading */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .loading.visible { display: block; }
+
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Auth needed notice */
+  .auth-needed {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .auth-needed .big {
+    font-family: var(--display);
+    font-size: 28px;
+    color: var(--green);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 560px) {
+    .steps { grid-template-columns: 1fr; }
+    .action-row { flex-direction: column; }
+    .btn-primary { height: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo-line">
+      <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="15" stroke="#1DB954" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="6" fill="#1DB954" opacity="0.2"/>
+        <circle cx="16" cy="16" r="2.5" fill="#1DB954"/>
+        <path d="M8 11 Q16 7 24 11" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        <path d="M6 15 Q16 10 26 15" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+        <path d="M5 19 Q16 13 27 19" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" opacity="0.2"/>
+      </svg>
+      <h1>Playlist <span>→</span> List</h1>
+    </div>
+    <p class="subtitle">Spotify playlist extractor &nbsp;·&nbsp; Artist: Song format</p>
+  </header>
+
+  <!-- Step 1: Credentials -->
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-num">Step 01 — Spotify App</div>
+      <label for="clientId">Client ID</label>
+      <input type="text" id="clientId" placeholder="your_client_id_here" autocomplete="off" spellcheck="false">
+      <p class="note">
+        Need one? <a href="https://developer.spotify.com/dashboard" target="_blank">Create a free Spotify app</a> at the Developer Dashboard.
+        Set the redirect URI to <strong id="redirectDisplay">this page's URL</strong>.
+      </p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 02 — Authorize</div>
+      <label>Connect your Spotify account</label>
+      <button class="btn-primary" id="authBtn" onclick="startAuth()" style="width:100%;height:44px;margin-top:2px">Connect to Spotify</button>
+      <p class="note" style="margin-top:10px">Uses OAuth PKCE — your credentials never leave your browser.</p>
+    </div>
+  </div>
+
+  <!-- Auth status bar -->
+  <div class="auth-bar" id="authBar">
+    <div class="auth-dot"></div>
+    <span class="auth-text">Connected as <span class="auth-user" id="authUser"></span></span>
+    <button class="btn-secondary" onclick="runDiagnosis()">Diagnose</button>
+    <button class="btn-secondary" onclick="logout()">Disconnect</button>
+  </div>
+
+  <!-- Diagnosis output -->
+  <div id="diagBox" style="display:none;background:#0d1f0d;border:1px solid #1DB954;border-radius:8px;padding:20px;margin-bottom:20px;font-size:11px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:#ccc;"></div>
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- URL + fetch -->
+  <div class="action-row">
+    <div class="url-input-wrap">
+      <svg class="url-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      <input type="text" id="playlistUrl" placeholder="https://open.spotify.com/playlist/..." spellcheck="false">
+    </div>
+    <button class="btn-primary" id="fetchBtn" onclick="fetchPlaylist()">Extract</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Fetching tracks…</div>
+  </div>
+
+  <!-- Output -->
+  <div class="output-panel" id="outputPanel">
+    <div class="output-header">
+      <div class="output-meta">
+        <strong id="playlistName">Playlist</strong>
+        &nbsp;·&nbsp; <span id="trackCount">0</span> tracks
+      </div>
+      <div class="output-actions">
+        <button class="btn-secondary" onclick="copyList()">Copy</button>
+        <button class="btn-secondary" onclick="downloadList()">Download .txt</button>
+      </div>
+    </div>
+    <div class="track-list" id="trackList"></div>
+  </div>
+</div>
+
+<script>
+// ── PKCE helpers ──────────────────────────────────────────────
+const SCOPES = 'playlist-read-private playlist-read-collaborative';
+
+function base64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generatePKCE() {
+  const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = base64url(digest);
+  return { verifier, challenge };
+}
+
+// ── State ─────────────────────────────────────────────────────
+let accessToken = null;
+let rawLines = [];
+
+// ── Redirect URI = current page ───────────────────────────────
+const REDIRECT_URI = location.origin + location.pathname;
+document.getElementById('redirectDisplay').textContent = REDIRECT_URI;
+
+// ── Restore saved client ID ───────────────────────────────────
+const savedId = localStorage.getItem('sp_client_id');
+if (savedId) document.getElementById('clientId').value = savedId;
+
+// ── On load: handle OAuth callback ───────────────────────────
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+
+  if (error) {
+    showError('Spotify auth denied: ' + error);
+    history.replaceState({}, '', location.pathname);
+    return;
+  }
+
+  if (code) {
+    history.replaceState({}, '', location.pathname);
+    const verifier = sessionStorage.getItem('pkce_verifier');
+    const clientId = sessionStorage.getItem('pending_client_id');
+    if (!verifier || !clientId) { showError('Session expired. Please try again.'); return; }
+
+    try {
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: REDIRECT_URI,
+          client_id: clientId,
+          code_verifier: verifier,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error_description || data.error);
+
+      accessToken = data.access_token;
+      localStorage.setItem('sp_client_id', clientId);
+      sessionStorage.removeItem('pkce_verifier');
+      sessionStorage.removeItem('pending_client_id');
+
+      await loadUser();
+    } catch(e) {
+      showError('Token exchange failed: ' + e.message);
+    }
+  }
+})();
+
+async function startAuth() {
+  const clientId = document.getElementById('clientId').value.trim();
+  if (!clientId) { showError('Enter your Spotify Client ID first.'); return; }
+
+  const { verifier, challenge } = await generatePKCE();
+  sessionStorage.setItem('pkce_verifier', verifier);
+  sessionStorage.setItem('pending_client_id', clientId);
+
+  const url = new URL('https://accounts.spotify.com/authorize');
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', clientId);
+  url.searchParams.set('scope', SCOPES);
+  url.searchParams.set('redirect_uri', REDIRECT_URI);
+  url.searchParams.set('code_challenge_method', 'S256');
+  url.searchParams.set('code_challenge', challenge);
+  location.href = url;
+}
+
+async function loadUser() {
+  const res = await fetch('https://api.spotify.com/v1/me', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  const data = await res.json();
+  document.getElementById('authUser').textContent = data.display_name || data.id;
+  document.getElementById('authBar').classList.add('visible');
+}
+
+function logout() {
+  accessToken = null;
+  document.getElementById('authBar').classList.remove('visible');
+  document.getElementById('outputPanel').classList.remove('visible');
+}
+
+// ── Extract playlist ID from URL or raw ID ────────────────────
+function extractPlaylistId(input) {
+  input = input.trim();
+  // Full URL
+  const m = input.match(/playlist\/([A-Za-z0-9]+)/);
+  if (m) return m[1];
+  // Spotify URI
+  const u = input.match(/spotify:playlist:([A-Za-z0-9]+)/);
+  if (u) return u[1];
+  // Raw ID (22 chars alphanumeric)
+  if (/^[A-Za-z0-9]{22}$/.test(input)) return input;
+  return null;
+}
+
+// ── Fetch all tracks (handles pagination) ────────────────────
+async function fetchAllTracks(playlistId) {
+  let tracks = [];
+  let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+
+  while (url) {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(`Spotify error ${res.status}: ${e.error?.message || res.statusText}`);
+    }
+    const data = await res.json();
+    tracks = tracks.concat(data.items);
+    url = data.next;
+  }
+  return tracks;
+}
+
+async function fetchPlaylist() {
+  clearError();
+  if (!accessToken) { showError('Connect your Spotify account first.'); return; }
+
+  const input = document.getElementById('playlistUrl').value.trim();
+  if (!input) { showError('Paste a Spotify playlist URL or ID.'); return; }
+
+  const playlistId = extractPlaylistId(input);
+  if (!playlistId) { showError('Could not find a playlist ID in that URL. Try copying the share link from Spotify.'); return; }
+
+  setLoading(true);
+  document.getElementById('outputPanel').classList.remove('visible');
+
+  try {
+    // Fetch playlist info
+    const infoRes = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!infoRes.ok) {
+      const e = await infoRes.json().catch(() => ({}));
+      throw new Error(`Spotify error ${infoRes.status}: ${e.error?.message || infoRes.statusText}`);
+    }
+    const info = await infoRes.json();
+
+    // Fetch tracks
+    const items = await fetchAllTracks(playlistId);
+
+    // Render
+    rawLines = [];
+    const listEl = document.getElementById('trackList');
+    listEl.innerHTML = '';
+
+    let count = 0;
+    items.forEach((item, i) => {
+      if (!item.track || !item.track.name) return; // skip local/null tracks
+      count++;
+      const artist = item.track.artists.map(a => a.name).join(', ');
+      const song = item.track.name;
+      const line = `${artist}: ${song}`;
+      rawLines.push(line);
+
+      const div = document.createElement('div');
+      div.className = 'track-item';
+      div.style.animationDelay = Math.min(i * 12, 300) + 'ms';
+      div.innerHTML = `
+        <span class="track-num">${count}</span>
+        <span class="track-text"><span class="artist">${esc(artist)}</span><span class="sep">:</span> ${esc(song)}</span>
+      `;
+      listEl.appendChild(div);
+    });
+
+    document.getElementById('playlistName').textContent = info.name;
+    document.getElementById('trackCount').textContent = count;
+    document.getElementById('outputPanel').classList.add('visible');
+
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+
+async function runDiagnosis() {
+  const box = document.getElementById('diagBox');
+  box.style.display = 'block';
+  box.textContent = 'Running diagnosis...';
+  let log = '';
+
+  // Test 1: /me
+  try {
+    const r = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + accessToken } });
+    const d = await r.json();
+    log += 'TOKEN CHECK: ' + r.status + '\n';
+    log += 'User: ' + (d.display_name || d.id || JSON.stringify(d)) + '\n\n';
+  } catch(e) { log += 'TOKEN CHECK FAILED: ' + e.message + '\n\n'; }
+
+  // Test 2: playlist URL
+  const input = document.getElementById('playlistUrl').value.trim();
+  const pid = input ? extractPlaylistId(input) : null;
+  if (pid) {
+    log += 'Playlist ID: ' + pid + '\n';
+    try {
+      const r = await fetch('https://api.spotify.com/v1/playlists/' + pid, { headers: { Authorization: 'Bearer ' + accessToken } });
+      const d = await r.json();
+      log += 'Playlist status: ' + r.status + '\n';
+      log += 'Response: ' + JSON.stringify(d, null, 2) + '\n';
+    } catch(e) { log += 'Playlist fetch error: ' + e.message + '\n'; }
+  } else {
+    log += 'No playlist URL entered yet.\n';
+  }
+
+  box.textContent = log;
+}
+
+// ── Copy & Download ───────────────────────────────────────────
+function copyList() {
+  navigator.clipboard.writeText(rawLines.join('\n')).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  });
+}
+
+function downloadList() {
+  const name = document.getElementById('playlistName').textContent.replace(/[^a-zA-Z0-9 _-]/g,'').trim() || 'playlist';
+  const blob = new Blob([rawLines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '.txt';
+  a.click();
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function clearError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+
+function setLoading(v) {
+  document.getElementById('loading').classList.toggle('visible', v);
+  document.getElementById('fetchBtn').disabled = v;
+}
+
+// Allow Enter key on URL input
+document.getElementById('playlistUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchPlaylist();
+});
+</script>
+</body>
+</html>
